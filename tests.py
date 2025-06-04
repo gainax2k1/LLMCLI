@@ -1,13 +1,20 @@
 from functions.get_files_info import get_files_info
 from functions.get_file_content import get_file_content
 from functions.overwrite_file import overwrite_file
+from functions.run_python import run_python_file
+
+# fourth tests
+print(run_python_file("calculator", "main.py"))
+print(run_python_file("calculator", "tests.py"))
+print(run_python_file("calculator", "../main.py")) # should return error
+print(run_python_file("calculator", "empty.py")) # should return error
 
 
-
+""" third tests
 print(overwrite_file("calculator", "lorem.txt", "wait, this isn't lorem ipsum"))
 print(overwrite_file("calculator", "pkg/morelorem.txt", "lorem ipsum dolor sit amet"))
 print(overwrite_file("calculator", "/tmp/temp.txt", "this should not be allowed"))
-
+"""
 
 
 """ second tests
