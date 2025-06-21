@@ -3,7 +3,11 @@ import sys #to recieve CLI prompts
 
 from dotenv import load_dotenv
 from google import genai
+#import google.generativeai as genai
 from google.genai import types
+#import google.generativeai.types
+from  functions import call_function
+
 
 load_dotenv()
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -61,7 +65,7 @@ schema_get_file_content = types.FunctionDeclaration(
 )
 
 schema_run_python_file = types.FunctionDeclaration(
-    name="run_python_file", # SHOULD be 'run_python', but typo in cli test forces this incorecction
+    name="run_python_file",# SHOULD be 'run_python', but typo in cli test forces this incorecction
     description="Execute Python files with optional arguments",
     parameters=types.Schema(
         type=types.Type.OBJECT,
@@ -127,6 +131,12 @@ if verbose:
 
 if response.function_calls:
     for calls in response.function_calls:
-        print(f"Calling function: {calls.name}({calls.args})")
+        #print(f"Calling function: {calls.name}({calls.args})")
+        function_call_result = call_function.call_function(calls, verbose)
+        try:
+            if verbose:
+                print(f"-> {function_call_result.parts[0].function_response.response}")
+        except:
+            raise Exception("Missing response")
 else: 
     print(response.text)
