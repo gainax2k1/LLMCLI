@@ -3,9 +3,7 @@ import sys #to recieve CLI prompts
 
 from dotenv import load_dotenv
 from google import genai
-#import google.generativeai as genai
 from google.genai import types
-#import google.generativeai.types
 from  functions import call_function
 
 
@@ -28,7 +26,7 @@ When a user asks a question or makes a request, make a function call plan. You c
 
 - List files and directories by calling 'get_files_info(directory)'
 - Read file contents by calling 'get_file_content(file_path)'
-- Execute Python files with optional arguments by calling 'run_python(file_path)'
+- Execute Python files with optional arguments by calling 'run_python_file(file_path)'
 - Write or overwrite files by calling 'overwrite_file(file_path, content)'
 
 All paths you provide should be relative to the working directory. You do not need to specify the working directory
@@ -65,7 +63,7 @@ schema_get_file_content = types.FunctionDeclaration(
 )
 
 schema_run_python_file = types.FunctionDeclaration(
-    name="run_python_file",# SHOULD be 'run_python', but typo in cli test forces this incorecction
+    name="run_python_file",
     description="Execute Python files with optional arguments",
     parameters=types.Schema(
         type=types.Type.OBJECT,
@@ -102,6 +100,7 @@ available_functions = types.Tool(
     ]
 )
 
+
 if sys.argv[-1] == "--verbose":
     verbose = True
     user_prompt = " ".join(sys.argv[1:-1])
@@ -112,31 +111,41 @@ messages = [
     genai.types.Content(role="user", parts=[genai.types.Part(text=user_prompt)]),
 ]
 
-response = client.models.generate_content(
-    model='gemini-2.0-flash-001',
+# HEy Boots! STart my loop here? initial messages already stored, then apepend the responses to messages
 
-    # contents='Why is Boot.dev such a great place to learn backend development? Use one paragraph maximum.'
-    # contents=" ".join(sys.argv[1:])
-    contents=messages,
-    # old: config=genai.types.GenerateContentConfig(system_instruction=system_prompt),
-    config=types.GenerateContentConfig(
-        tools=[available_functions], system_instruction=system_prompt
+max_loop_count = 20 #number of iterations allowed for generate loop
+for i in range(max_loop_count):
+    response = client.models.generate_content( 
+        model='gemini-2.0-flash-001',
+
+        # contents='Why is Boot.dev such a great place to learn backend development? Use one paragraph maximum.'
+        # contents=" ".join(sys.argv[1:])
+        contents=messages,
+        # old: config=genai.types.GenerateContentConfig(system_instruction=system_prompt),
+        config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=system_prompt
+        )
     )
-)
+    # Add all candidates to messages
+    for candidate in response.candidates:
+        messages.append(candidate.content)
 
-if verbose:
-    print(f"Working on: {user_prompt}")
-    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+    if verbose: #might need to move this
+        print(f"Working on: {user_prompt}")
+        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
 
-if response.function_calls:
-    for calls in response.function_calls:
-        #print(f"Calling function: {calls.name}({calls.args})")
-        function_call_result = call_function.call_function(calls, verbose)
-        try:
-            if verbose:
-                print(f"-> {function_call_result.parts[0].function_response.response}")
-        except:
-            raise Exception("Missing response")
-else: 
-    print(response.text)
+    if response.function_calls:
+        for calls in response.function_calls:
+            #print(f"Calling function: {calls.name}({calls.args})")
+            function_call_result = call_function.call_function(calls, verbose)
+            messages.append(function_call_result)
+            try:
+                if verbose:
+                    print(f"-> {function_call_result.parts[0].function_response.response}")
+            except:
+                raise Exception("Missing response")
+        continue
+    else: # no more function calls
+        print(response.text) # add response to messages here?
+        break

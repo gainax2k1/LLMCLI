@@ -4,7 +4,7 @@ from google.genai import types
 from functions.get_file_content import get_file_content
 from functions.get_files_info import get_files_info
 from functions.overwrite_file import overwrite_file
-from functions.run_python import run_python_file
+from functions.run_python_file import run_python_file
 
 
 def call_function(function_call_part, verbose=False):
